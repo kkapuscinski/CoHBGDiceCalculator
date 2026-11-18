@@ -29,7 +29,7 @@ Key: `-` = no defence, R = resistance (1 resistance die per damage die), S = 2 f
 5. **HE can miss:** only hits and crits give resistance dice and count as exposure for static dice. Separate Hit and Crit counters; hits plus crits never exceed the HE dice count.
 6. **Total damage done:** 1 per die. HE hit = 1, HE crit = 2, HE miss = 0. Damage types the target is invulnerable to are excluded. Flame damage is shown in parentheses, e.g. `4 (2)`, and is included in the total.
 7. **Statistics:** total damage done, and resistance plus static defence dice (shown as `–` with no target).
+8. **Building damage:** standard buildings take only successful HE and Flame damage, have 2 health, and get no defence rolls. Bonus unit defence is hidden for a directly selected building. Infantry in a standard building are reminded that resulting HE and Flame damage is also applied to the building.
 
 ## Open points
-- The grey shield in the matrix image has a small star that was not interpreted. Check that cell against the rulebook.
-- Dice names and the matrix were taken from the user's images; verify against the 2E rulebook.
+- Dice rolling and applying defence results are not implemented yet.

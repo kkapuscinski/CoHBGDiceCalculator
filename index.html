@@ -26,6 +26,8 @@
   .result { font-size:1.1rem; font-weight:700; padding:8px 0; }
   .result.inv { color:#a33; }
   .total { padding:12px 16px; font-weight:600; }
+  .rule-note { padding:12px 16px; font-weight:600; }
+  .rule-note .card { border-top-color:#555; padding:12px; }
 </style>
 </head>
 <body>
@@ -41,10 +43,18 @@
 <div id="coverSection" hidden>
 <h2>Battlefield defence (infantry)</h2>
 <div class="grid" id="cover"></div>
+<div id="occupiedBuildingNote" class="rule-note" hidden>
+<div class="card">Standard Building: Resulting HE damage and Flame damage assigned to an Infantry unit inside are also applied to the building. The building has 2 health and gets no defence rolls.</div>
 </div>
+</div>
+<div id="bonusSection">
 <h2>Bonus static defence dice</h2>
 <div class="grid"><div class="card" style="--c:#8a6d1f"><div class="name">Unit bonus</div><div class="count" id="bonusCount"></div>
 <div class="btns"><button data-id="bonus" data-d="-1" aria-label="Remove bonus static die">−</button><button data-id="bonus" data-d="1" aria-label="Add bonus static die">+</button></div></div></div>
+</div>
+<div id="buildingNote" class="rule-note" hidden>
+<div class="card">Standard Building: 2 health. Only successful HE damage and Flame damage apply. Buildings get no defence rolls.</div>
+</div>
 <h2>Defence dice (calculated)</h2>
 <div class="grid" id="defence"></div>
 <h2>Statistics</h2>
@@ -135,6 +145,7 @@ function render() {
   }
   const target = TARGETS.find(t => t.id === state.target);
   const isInfantry = target && target.id === 'g';
+  const isBuilding = target && target.id === 'b';
   document.getElementById('frontalSection').hidden = !(target && target.id === 'r');
   const directions = document.getElementById('attackDirection');
   directions.innerHTML = '';
@@ -151,6 +162,8 @@ function render() {
     directions.appendChild(b);
   }
   document.getElementById('coverSection').hidden = !isInfantry;
+  document.getElementById('bonusSection').hidden = isBuilding;
+  document.getElementById('buildingNote').hidden = !isBuilding;
   const cv = document.getElementById('cover');
   cv.innerHTML = '';
   for (const c of COVER) {
@@ -161,6 +174,8 @@ function render() {
     b.textContent = `${c.name}${c.dice ? ' · ' + c.dice : ''}`;
     cv.appendChild(b);
   }
+  document.getElementById('occupiedBuildingNote').hidden =
+    !isInfantry || (state.cover || 'none') !== 'grey';
   const def = document.getElementById('defence');
   def.innerHTML = '';
   let resist = 0, stat = 0;
@@ -196,7 +211,7 @@ function render() {
       const c = COVER.find(c => c.id === (state.cover || 'none'));
       if (c.dice) addStatic(`Battlefield: ${c.name}`, c.dice, c.color);
     }
-    if (count('bonus')) addStatic('Unit bonus', count('bonus'), '#8a6d1f');
+    if (!isBuilding && count('bonus')) addStatic('Unit bonus', count('bonus'), '#8a6d1f');
   }
   document.getElementById('total').textContent =
     `Total damage dice: ${sum}` + (target ? ` · Resistance dice: ${resist} · Static defence dice: ${stat}` : '');
