@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoH Board Game 2E – Dice Counter</title>
+<style>
+  :root { --bg:#e9dfc8; --ink:#2a2a2a; --card:#f6efdd; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#3b3a2e; color:#fff; }
+  h1 { font-size:1.1rem; margin:0; }
+  h2 { margin:16px 16px 8px; font-size:1rem; text-transform:uppercase; letter-spacing:.05em; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; padding:0 16px; }
+  .card { background:var(--card); border-radius:10px; border-top:6px solid var(--c); padding:10px; text-align:center; box-shadow:0 1px 3px #0004; }
+  .name { font-weight:700; min-height:2.4em; display:flex; align-items:center; justify-content:center; }
+  .count { font-size:3rem; font-weight:800; line-height:1.1; }
+  .btns { display:flex; gap:8px; justify-content:center; margin-top:6px; }
+  button { font-size:1.6rem; width:64px; height:52px; border:0; border-radius:8px; background:var(--c); color:#fff; cursor:pointer; touch-action:manipulation; }
+  button:active { filter:brightness(.8); }
+  .reset { width:auto; height:auto; font-size:.9rem; padding:8px 12px; background:#a33; }
+  button.target { width:auto; height:auto; font-size:1rem; padding:12px 8px; opacity:.55; }
+  button.target.sel { opacity:1; outline:3px solid #000; }
+  .count small { font-size:1.5rem; font-weight:600; }
+  .count.small { font-size:2rem; }
+  .result { font-size:1.1rem; font-weight:700; padding:8px 0; }
+  .result.inv { color:#a33; }
+  .total { padding:12px 16px; font-weight:600; }
+</style>
+</head>
+<body>
+<header><h1>CoH Board Game 2E – Dice Counter</h1><button class="reset" id="reset">Reset all</button></header>
+<h2>Damage dice</h2>
+<div class="grid" id="damage"></div>
+<h2>Target</h2>
+<div class="grid" id="targets"></div>
+<div id="frontalSection" hidden>
+<h2>Attack direction</h2>
+<div class="grid" id="attackDirection"></div>
+</div>
+<div id="coverSection" hidden>
+<h2>Battlefield defence (infantry)</h2>
+<div class="grid" id="cover"></div>
+</div>
+<h2>Bonus static defence dice</h2>
+<div class="grid"><div class="card" style="--c:#8a6d1f"><div class="name">Unit bonus</div><div class="count" id="bonusCount"></div>
+<div class="btns"><button data-id="bonus" data-d="-1" aria-label="Remove bonus static die">−</button><button data-id="bonus" data-d="1" aria-label="Add bonus static die">+</button></div></div></div>
+<h2>Defence dice (calculated)</h2>
+<div class="grid" id="defence"></div>
+<h2>Statistics</h2>
+<div class="grid" id="stats"></div>
+<div class="total" id="total"></div>
+<script>
+// Edit these lists to add or rename dice types / targets.
+const DAMAGE = [
+  { id: 'ai',    name: 'Anti-Infantry',   color: '#222222' },
+  { id: 'ap',    name: 'Armor Piercing',  color: '#4a5a6a' },
+  { id: 'he',    name: 'High Explosive',  color: '#2f6b3a' },
+  { id: 'flame', name: 'Flame (Special)', color: '#a3231f' },
+];
+// R = resistance (1 die per damage die), S = static defence (2 frontal dice, regardless of damage dice),
+// X = invulnerable, - = no defence. Order follows DAMAGE.
+const TARGETS = [
+  { id: 'g', name: 'Infantry',       color: '#3a9a4a', def: ['-', 'R', '-', '-'] },
+  { id: 'y', name: 'Light armour',   color: '#e0b020', def: ['R', '-', 'R', '-'] },
+  { id: 'r', name: 'Heavy armour',   color: '#c0282d', def: ['X', 'S', 'R', 'X'] },
+  { id: 'p', name: 'Emplacement',    color: '#6a4c93', def: ['R', 'R', '-', '-'] },
+  { id: 'b', name: 'Building',       color: '#222222', def: ['X', 'X', '-', '-'] },
+];
+const STATIC_DICE = 2;
+// Static defence dice an infantry target gets from the battlefield it stands in.
+const COVER = [
+  { id: 'none',   name: 'None',               color: '#777777', dice: 0 },
+  { id: 'yellow', name: 'Yellow',             color: '#e0b020', dice: 1 },
+  { id: 'green',  name: 'Green',              color: '#3a9a4a', dice: 2 },
+  { id: 'grey',   name: 'Grey (building)',    color: '#555555', dice: 3 },
+  { id: 'purple', name: 'Purple (destroyed building)', color: '#6a4c93', dice: 1 },
+];
+const KEY = 'coh2e-dice-counter';
+let state = JSON.parse(localStorage.getItem(KEY) || '{}');
+const save = () => localStorage.setItem(KEY, JSON.stringify(state));
+const count = id => state[id] || 0;
+// HE dice can miss; only hits and crits (hehit, hecrit) count as damage for defence purposes.
+const effective = id => id === 'he' ? count('hehit') + count('hecrit') : count(id);
+// Damage types the selected target is invulnerable to deal nothing.
+const damageDealt = (target, onlyFlame = false) => DAMAGE.reduce((s, d, i) => {
+  if (target && target.def[i] === 'X') return s;
+  if (onlyFlame && d.id !== 'flame') return s;
+  return s + (d.id === 'he' ? count('hehit') + 2 * count('hecrit') : count(d.id));
+}, 0);
+function defenceFor(target, i) {
+  const n = effective(DAMAGE[i].id);
+  switch (target.def[i]) {
+    case 'X': return { text: 'Invulnerable', n: 0, inv: true };
+    default: if (DAMAGE[i].id === 'flame') return { text: 'Bypasses all defence', n };
+  }
+  switch (target.def[i]) {
+    case 'R': return { text: n + ' resistance', n };
+    case 'S': {
+      const dice = n > 0 && state.frontalAttack ? STATIC_DICE : 0;
+      const direction = state.frontalAttack ? 'frontal' : 'non-frontal';
+      return { text: dice + ' static (' + direction + ')', n: dice };
+    }
+    default:  return { text: 'No defence', n: 0 };
+  }
+}
+function render() {
+  const dmg = document.getElementById('damage');
+  dmg.innerHTML = '';
+  for (const d of DAMAGE) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.setProperty('--c', d.color);
+    card.innerHTML = `<div class="name">${d.name}</div>
+      <div class="count">${count(d.id)}</div>
+      <div class="btns"><button data-id="${d.id}" data-d="-1" aria-label="Remove ${d.name}">−</button>
+      <button data-id="${d.id}" data-d="1" aria-label="Add ${d.name}">+</button></div>` +
+      (d.id === 'he' ? `<div class="name">Hit (1 dmg)</div><div class="count small">${count('hehit')}</div>
+      <div class="btns"><button data-id="hehit" data-d="-1" aria-label="Remove HE hit">−</button>
+      <button data-id="hehit" data-d="1" aria-label="Add HE hit">+</button></div>
+      <div class="name">Crit (2 dmg)</div><div class="count small">${count('hecrit')}</div>
+      <div class="btns"><button data-id="hecrit" data-d="-1" aria-label="Remove HE crit">−</button>
+      <button data-id="hecrit" data-d="1" aria-label="Add HE crit">+</button></div>` : '');
+    dmg.appendChild(card);
+  }
+  const tg = document.getElementById('targets');
+  tg.innerHTML = '';
+  for (const t of TARGETS) {
+    const b = document.createElement('button');
+    b.className = 'target' + (state.target === t.id ? ' sel' : '');
+    b.style.setProperty('--c', t.color);
+    b.dataset.target = t.id;
+    b.textContent = t.name;
+    tg.appendChild(b);
+  }
+  const target = TARGETS.find(t => t.id === state.target);
+  const isInfantry = target && target.id === 'g';
+  document.getElementById('frontalSection').hidden = !(target && target.id === 'r');
+  const directions = document.getElementById('attackDirection');
+  directions.innerHTML = '';
+  for (const option of [
+    { frontal: false, name: 'Side / rear', color: '#777777' },
+    { frontal: true, name: 'Frontal arc', color: '#3a9a4a' },
+  ]) {
+    const b = document.createElement('button');
+    b.className = 'target' + (Boolean(state.frontalAttack) === option.frontal ? ' sel' : '');
+    b.style.setProperty('--c', option.color);
+    b.dataset.frontal = option.frontal;
+    b.setAttribute('aria-pressed', String(Boolean(state.frontalAttack) === option.frontal));
+    b.textContent = option.name;
+    directions.appendChild(b);
+  }
+  document.getElementById('coverSection').hidden = !isInfantry;
+  const cv = document.getElementById('cover');
+  cv.innerHTML = '';
+  for (const c of COVER) {
+    const b = document.createElement('button');
+    b.className = 'target' + ((state.cover || 'none') === c.id ? ' sel' : '');
+    b.style.setProperty('--c', c.color);
+    b.dataset.cover = c.id;
+    b.textContent = `${c.name}${c.dice ? ' · ' + c.dice : ''}`;
+    cv.appendChild(b);
+  }
+  const def = document.getElementById('defence');
+  def.innerHTML = '';
+  let resist = 0, stat = 0;
+  if (!target) {
+    def.innerHTML = '<div class="total">Select a target.</div>';
+  } else {
+    DAMAGE.forEach((d, i) => {
+      const r = defenceFor(target, i);
+      if (target.def[i] === 'R') resist += r.n;
+      if (target.def[i] === 'S') stat += r.n;
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.setProperty('--c', d.color);
+      card.innerHTML = `<div class="name">vs ${d.name}</div><div class="result${r.inv ? ' inv' : ''}">${r.text}</div>`;
+      def.appendChild(card);
+    });
+  }
+  const sum = DAMAGE.reduce((s, d) => s + count(d.id), 0);
+  document.getElementById('bonusCount').textContent = count('bonus');
+  // Flame bypasses resistance and static defence, so extra static dice only matter
+  // against non-flame dice that the target is not invulnerable to.
+  const exposed = target && DAMAGE.some((d, i) => d.id !== 'flame' && target.def[i] !== 'X' && effective(d.id) > 0);
+  const addStatic = (name, dice, color) => {
+    stat += dice;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.setProperty('--c', color);
+    card.innerHTML = `<div class="name">${name}</div><div class="result">${dice} static</div>`;
+    def.appendChild(card);
+  };
+  if (exposed) {
+    if (isInfantry) {
+      const c = COVER.find(c => c.id === (state.cover || 'none'));
+      if (c.dice) addStatic(`Battlefield: ${c.name}`, c.dice, c.color);
+    }
+    if (count('bonus')) addStatic('Unit bonus', count('bonus'), '#8a6d1f');
+  }
+  document.getElementById('total').textContent =
+    `Total damage dice: ${sum}` + (target ? ` · Resistance dice: ${resist} · Static defence dice: ${stat}` : '');
+  document.getElementById('stats').innerHTML =
+    `<div class="card" style="--c:#a3231f"><div class="name">Total damage done</div><div class="count">${damageDealt(target)} <small>(${damageDealt(target, true)})</small></div></div>` +
+    `<div class="card" style="--c:#6a4c93"><div class="name">Resistance + static defence dice</div><div class="count">${target ? resist + stat : '–'}</div></div>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-id]');
+  if (b) {
+    state[b.dataset.id] = Math.max(0, count(b.dataset.id) + Number(b.dataset.d));
+    // hits + crits can never exceed the HE dice rolled
+    state.hecrit = Math.min(count('hecrit'), count('he'));
+    state.hehit = Math.min(count('hehit'), count('he') - count('hecrit'));
+  }
+  const t = e.target.closest('button[data-target]');
+  if (t) state.target = t.dataset.target;
+  const c = e.target.closest('button[data-cover]');
+  if (c) state.cover = c.dataset.cover;
+  const direction = e.target.closest('button[data-frontal]');
+  if (direction) state.frontalAttack = direction.dataset.frontal === 'true';
+  if (b || t || c || direction) { save(); render(); }
+});
+document.getElementById('reset').onclick = () => {
+  state = {}; localStorage.removeItem(KEY); render();
+};
+render();
+</script>
+</body>
+</html>
