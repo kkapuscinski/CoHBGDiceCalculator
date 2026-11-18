@@ -20,6 +20,11 @@
   .name { font-weight:700; min-height:2.4em; display:flex; flex-wrap:wrap; gap:4px; align-items:center; justify-content:center; }
   .label { min-width:0; overflow-wrap:anywhere; }
   .icon { flex:none; object-fit:contain; }
+  #damage .icon {
+    width:32px; height:32px; padding:4px;
+    background:#fff; border-radius:6px; box-shadow:0 2px 2px #0004;
+  }
+  #targets .icon { width:44px; height:35px; }
   .count { font-size:3rem; font-weight:800; line-height:1.1; overflow-wrap:anywhere; }
   .btns { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:6px; }
   button { min-width:44px; min-height:44px; border:1px solid currentColor; border-radius:8px; background:var(--control-bg); color:var(--ink); cursor:pointer; touch-action:manipulation; }

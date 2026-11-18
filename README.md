@@ -9,6 +9,11 @@ Static calculator for damage and defence dice in Company of Heroes Board Game 2E
 
 The [GitHub Pages workflow](./.github/workflows/deploy-pages.yml) copies the `assets` directory into the published site when it exists. No build step is needed to preview the page locally.
 
+Keep Damage Dice icons transparent: the calculator draws the white rounded die face behind each symbol.
+
 ### Artwork credits
 
-The damage-dice badges, target icons (colored hearts and a black house), and blue shield shared by Unit bonus and the Battlefield defence options that grant dice in [`assets/icons/`](./assets/icons/) are original placeholders, not rulebook artwork. To use cleared artwork later, replace each PNG in place or update its image path in [index.html](./index.html) if the filename or format changes. Record the new artwork's credits here.
+- **Damage dice:** Anti-Infantry, Armor Piercing, High Explosive, and Flame are from the *Company of Heroes Board Game 2nd Edition Rulebook*, section 5.2, “Damage Types” (printed page 17). The icons were cropped and given transparent backgrounds, and are included with permission.
+- **Target types:** The G, Y, R, and P hearts and the Building symbol are from the same rulebook, section 5.5, “Resistance Defense Matrix” (printed page 19). The icons were cropped and given transparent backgrounds, and are included with permission.
+- **Defense Die:** The shield shared by Unit bonus and Battlefield defence comes from section 5.6, “Static Defenses” (printed page 20), and is included with permission.
+- **HE Splash Damage Die:** [`he-splash-damage.png`](./assets/icons/he-splash-damage.png) comes from section 5.3.1, “Damage – HE Splash Damage – Full Game Rules” (printed page 18). It is included with permission as an asset for future use and is not shown in the calculator.
