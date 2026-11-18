@@ -11,4 +11,4 @@ The [GitHub Pages workflow](./.github/workflows/deploy-pages.yml) copies the `as
 
 ### Artwork credits
 
-No rulebook artwork is bundled yet.
+The damage-dice badges, target icons (colored hearts and a black house), and blue shield shared by Unit bonus and the Battlefield defence options that grant dice in [`assets/icons/`](./assets/icons/) are original placeholders, not rulebook artwork. To use cleared artwork later, replace each PNG in place or update its image path in [index.html](./index.html) if the filename or format changes. Record the new artwork's credits here.

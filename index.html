@@ -63,7 +63,9 @@
 </div>
 <div id="bonusSection">
 <h2>Bonus static defence dice</h2>
-<div class="grid"><div class="card" style="--c:#8a6d1f"><div class="name">Unit bonus</div><div class="count" id="bonusCount"></div>
+<div class="grid"><div class="card" style="--c:#8a6d1f">
+<div class="name"><img class="icon" src="./assets/icons/bonus-static-defence.png" alt="" width="24" height="24"><span class="label">Unit bonus</span></div>
+<div class="count" id="bonusCount"></div>
 <div class="btns"><button data-id="bonus" data-d="-1" aria-label="Remove bonus static die">−</button><button data-id="bonus" data-d="1" aria-label="Add bonus static die">+</button></div></div></div>
 </div>
 <div id="buildingNote" class="rule-note" hidden>
@@ -77,19 +79,19 @@
 <script>
 // Entries can include an icon URL relative to index.html.
 const DAMAGE = [
-  { id: 'ai',    name: 'Anti-Infantry',   color: '#222222' },
-  { id: 'ap',    name: 'Armor Piercing',  color: '#4a5a6a' },
-  { id: 'he',    name: 'High Explosive',  color: '#2f6b3a' },
-  { id: 'flame', name: 'Flame (Special)', color: '#a3231f' },
+  { id: 'ai',    name: 'Anti-Infantry',   color: '#222222', icon: './assets/icons/anti-infantry.png' },
+  { id: 'ap',    name: 'Armor Piercing',  color: '#4a5a6a', icon: './assets/icons/armor-piercing.png' },
+  { id: 'he',    name: 'High Explosive',  color: '#2f6b3a', icon: './assets/icons/high-explosive.png' },
+  { id: 'flame', name: 'Flame (Special)', color: '#a3231f', icon: './assets/icons/flame.png' },
 ];
 // R = resistance (1 die per damage die), S = static defence (2 frontal dice, regardless of damage dice),
 // X = invulnerable, - = no defence. Order follows DAMAGE.
 const TARGETS = [
-  { id: 'g', name: 'Infantry',       color: '#3a9a4a', def: ['-', 'R', '-', '-'] },
-  { id: 'y', name: 'Light armour',   color: '#e0b020', def: ['R', '-', 'R', '-'] },
-  { id: 'r', name: 'Heavy armour',   color: '#c0282d', def: ['X', 'S', 'R', 'X'] },
-  { id: 'p', name: 'Emplacement',    color: '#6a4c93', def: ['R', 'R', '-', '-'] },
-  { id: 'b', name: 'Building',       color: '#222222', def: ['X', 'X', '-', '-'] },
+  { id: 'g', name: 'Infantry',       color: '#3a9a4a', def: ['-', 'R', '-', '-'], icon: './assets/icons/infantry.png' },
+  { id: 'y', name: 'Light armour',   color: '#e0b020', def: ['R', '-', 'R', '-'], icon: './assets/icons/light-armour.png' },
+  { id: 'r', name: 'Heavy armour',   color: '#c0282d', def: ['X', 'S', 'R', 'X'], icon: './assets/icons/heavy-armour.png' },
+  { id: 'p', name: 'Emplacement',    color: '#6a4c93', def: ['R', 'R', '-', '-'], icon: './assets/icons/emplacement.png' },
+  { id: 'b', name: 'Building',       color: '#222222', def: ['X', 'X', '-', '-'], icon: './assets/icons/building.png' },
 ];
 const STATIC_DICE = 2;
 // Static defence dice an infantry target gets from the battlefield it stands in.
@@ -202,7 +204,14 @@ function render() {
     b.style.setProperty('--c', c.color);
     b.dataset.cover = c.id;
     b.setAttribute('aria-pressed', String((state.cover || 'none') === c.id));
-    setLabel(b, `${c.name}${c.dice ? ' · ' + c.dice : ''}`, c.icon);
+    if (c.dice > 0) {
+      const amount = document.createElement('span');
+      amount.textContent = String(c.dice);
+      b.appendChild(amount);
+      setLabel(b, c.name, './assets/icons/bonus-static-defence.png');
+    } else {
+      setLabel(b, `${c.name}`);
+    }
     cv.appendChild(b);
   }
   document.getElementById('occupiedBuildingNote').hidden =
