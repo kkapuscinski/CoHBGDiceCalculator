@@ -166,7 +166,7 @@ function render() {
   }
   document.getElementById('coverSection').hidden = !isInfantry;
   document.getElementById('bonusSection').hidden = isBuilding;
-  document.getElementById('buildingNote').hidden = !isBuilding;
+  document.getElementById('buildingNote').hidden = !isBuilding || (count('he') === 0 && count('flame') === 0);
   const cv = document.getElementById('cover');
   cv.innerHTML = '';
   for (const c of COVER) {
@@ -178,7 +178,7 @@ function render() {
     cv.appendChild(b);
   }
   document.getElementById('occupiedBuildingNote').hidden =
-    !isInfantry || (state.cover || 'none') !== 'grey';
+    !isInfantry || (state.cover || 'none') !== 'grey' || (count('he') === 0 && count('flame') === 0);
   document.getElementById('heSplashNote').hidden =
     !isInfantry || (state.cover || 'none') === 'none';
   const def = document.getElementById('defence');
